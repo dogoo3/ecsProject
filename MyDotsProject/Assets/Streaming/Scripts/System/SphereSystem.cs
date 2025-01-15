@@ -50,28 +50,47 @@ public partial struct SphereSystem : ISystem
     {
         Transform cameraTransform = Camera.main.transform;
 
-        LocalTransform sphereTransform = entityManager.GetComponentData<LocalTransform>(_sphereEntity);
+        rotateDeltaSum += _inputComponent.mouseDelta;
 
+        foreach(var(character, entity) in SystemAPI.Query<SphereComponent>().WithEntityAccess())
+        {
+            if(SystemAPI.HasComponent<LocalTransform>(character.headEntity))
+            {
+                LocalTransform head = SystemAPI.GetComponent<LocalTransform>(character.headEntity); // ECS 데이터는 value 기반이기 때문에 GetComponent로는 값을 읽기만 할 수 있음 
+                
+                head.Rotation = math.mul(quaternion.RotateY(math.radians(rotateDeltaSum.x * sensitivity)), quaternion.RotateX(math.radians(rotateDeltaSum.y * sensitivity)));
+                
+                SystemAPI.SetComponent(character.headEntity, head); // 수정하기 위해서는 값을 SetComponent 해줘야 함
+
+                cameraTransform.rotation = Quaternion.Euler(rotateDeltaSum.y * sensitivity, rotateDeltaSum.x * sensitivity, 0);
+                Debug.Log(head.Forward());
+            }
+
+            if(SystemAPI.HasComponent<LocalTransform>(character.eyeEntity))
+            {
+                cameraTransform.position = SystemAPI.GetComponent<LocalToWorld>(character.eyeEntity).Position;
+            }
+        }
+        
         // Debug.Log(sphereTransform);
 
-        rotateDeltaSum += _inputComponent.mouseDelta;
         // sphereTransform.Rotation = quaternion.RotateY(math.radians(rotateDeltaSum.x));
 
-        // 마우스 상하좌우 이동에 따른 머리 오브젝트 회전
-        foreach(var localTransform in SystemAPI.Query<RefRW<LocalTransform>>().WithAll<CharacterHeadComponent>()) 
-        {
-            localTransform.ValueRW.Rotation = math.mul(quaternion.RotateY(math.radians(rotateDeltaSum.x * sensitivity)), quaternion.RotateX(math.radians(rotateDeltaSum.y * sensitivity)));
-            cameraTransform.rotation = Quaternion.Euler(rotateDeltaSum.y * sensitivity, rotateDeltaSum.x * sensitivity, 0);
-            break;
-        }
+        // // 마우스 상하좌우 이동에 따른 머리 오브젝트 회전
+        // foreach(var localTransform in SystemAPI.Query<RefRW<LocalTransform>>().WithAll<CharacterHeadComponent>()) 
+        // {
+        //     localTransform.ValueRW.Rotation = math.mul(quaternion.RotateY(math.radians(rotateDeltaSum.x * sensitivity)), quaternion.RotateX(math.radians(rotateDeltaSum.y * sensitivity)));
+        //     cameraTransform.rotation = Quaternion.Euler(rotateDeltaSum.y * sensitivity, rotateDeltaSum.x * sensitivity, 0);
+        //     break;
+        // }
 
-        // WithEntityAccess() : 매개변수가 있는 튜플을 검색
-        // 눈이 위치한 오브젝트로의 카메라 위치 이동
-        foreach(var (eyeEntity, worldtransform) in SystemAPI.Query<EyePositionComponent, LocalToWorld>())
-        {            
-            LocalToWorld temp = entityManager.GetComponentData<LocalToWorld>(eyeEntity.eyeEntity);
-            cameraTransform.position = temp.Position;
-            break; 
-        }
+        // // WithEntityAccess() : 매개변수가 있는 튜플을 검색
+        // // 눈이 위치한 오브젝트로의 카메라 위치 이동
+        // foreach(var (eyeEntity, worldtransform) in SystemAPI.Query<EyePositionComponent, LocalToWorld>())
+        // {            
+        //     LocalToWorld temp = entityManager.GetComponentData<LocalToWorld>(eyeEntity.eyeEntity);
+        //     cameraTransform.position = temp.Position;
+        //     break; 
+        // }
     }
 }

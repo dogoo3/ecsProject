@@ -6,6 +6,7 @@ using UnityEngine;
 public class SphereAuthoring : MonoBehaviour
 {
     public float moveSpeed = 10.0f;
+    public GameObject headObj, eyeObj;
 
     public class SphereBaker : Baker<SphereAuthoring>
     {
@@ -13,10 +14,19 @@ public class SphereAuthoring : MonoBehaviour
         {
             Entity entity = GetEntity(TransformUsageFlags.Dynamic);
 
-            AddComponent(entity, new SphereComponent
+            if (authoring.headObj != null && authoring.eyeObj != null)
             {
-                moveSpeed = authoring.moveSpeed
-            });
+                AddComponent(entity, new SphereComponent
+                {
+                    moveSpeed = authoring.moveSpeed,
+                    headEntity = GetEntity(authoring.headObj, TransformUsageFlags.Dynamic),
+                    eyeEntity = GetEntity(authoring.eyeObj, TransformUsageFlags.Dynamic)
+                });
+            }
+            else
+            {
+                Debug.Log("No include GameObject!");
+            }
         }
     }
 }
@@ -24,5 +34,7 @@ public class SphereAuthoring : MonoBehaviour
 public struct SphereComponent : IComponentData
 {
     public float moveSpeed;
+    public Entity headEntity;
+    public Entity eyeEntity;
 }
 
