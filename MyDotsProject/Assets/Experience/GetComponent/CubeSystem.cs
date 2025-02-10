@@ -33,8 +33,6 @@ namespace ExperienceTest.GetComponent
                     var cylinderTransform = SystemAPI.GetComponent<LocalTransform>(cubeComponent.cylinderEntity);
                     Debug.Log($"Cylinder Position: {cylinderTransform.Position}");
                 }
-
-                Debug.Log(SystemAPI.GetComponent<LocalToWorld>(entity).Position);
             }
         }
 
