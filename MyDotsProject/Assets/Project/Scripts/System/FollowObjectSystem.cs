@@ -22,8 +22,6 @@ public partial struct FollowObjectSystem : ISystem
                 // 오브젝트가 캐릭터를 바라보는 방향벡터 계산
                 float3 arrowVector = math.normalize(character.ValueRO.Position - obj.ValueRO.Position);
                 obj.ValueRW.Position += arrowVector * speed.ValueRO.moveSpeed * Time.deltaTime;
-
-                Debug.Log(character.ValueRO.Position - obj.ValueRO.Position);
             }
         }
     }

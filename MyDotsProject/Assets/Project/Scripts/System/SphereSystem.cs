@@ -15,6 +15,8 @@ public partial struct SphereSystem : ISystem
 
     private float2 rotateDeltaSum;
     private float3 forward3;
+    private float3 right3;
+
     private float sensitivity;
 
     public void OnCreate(ref SystemState state)
@@ -43,6 +45,7 @@ public partial struct SphereSystem : ISystem
         LocalTransform sphereTransform = entityManager.GetComponentData<LocalTransform>(_sphereEntity);
 
         sphereTransform.Position += new float3(forward3 * _inputComponent.movement.z * _sphereComponent.moveSpeed * Time.deltaTime);
+        sphereTransform.Position += new float3(right3 * _inputComponent.movement.x * _sphereComponent.moveSpeed * Time.deltaTime);
 
         entityManager.SetComponentData(_sphereEntity, sphereTransform);
     }
@@ -64,12 +67,14 @@ public partial struct SphereSystem : ISystem
                 SystemAPI.SetComponent(character.headEntity, head); // 수정하기 위해서는 값을 SetComponent 해줘야 함
 
                 cameraTransform.rotation = Quaternion.Euler(-rotateDeltaSum.y * sensitivity, rotateDeltaSum.x * sensitivity, 0);
-                // Debug.Log(head.Forward());
 
-                // 지면에 평행(y값이 0인)인 방향 벡터를 계산
+                // 지면에 평행(y값이 0인)인 방향 벡터를 계산 (앞쪽)
                 float scalar = math.sqrt(head.Forward().x * head.Forward().x + head.Forward().z * head.Forward().z);
-
                 forward3 = new float3(head.Forward().x / scalar, 0, head.Forward().z / scalar);
+
+                // 지면에 평행(y값이 0)인 방향 벡터를 계산 (오른쪽)
+                scalar = math.sqrt(head.Right().x * head.Right().x + head.Right().z * head.Right().z);
+                right3 = new float3(head.Right().x / scalar, 0, head.Right().z / scalar);
             }
 
             if(SystemAPI.HasComponent<LocalTransform>(character.eyeEntity))
