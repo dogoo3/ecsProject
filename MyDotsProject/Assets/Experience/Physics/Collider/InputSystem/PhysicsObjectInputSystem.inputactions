@@ -1,5 +1,5 @@
 {
-    "name": "ColliderObject",
+    "name": "PhysicsObjectInputSystem",
     "maps": [
         {
             "name": "Player1",

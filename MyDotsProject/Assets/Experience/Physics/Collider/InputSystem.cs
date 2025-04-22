@@ -2,11 +2,11 @@ using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Collider
+namespace BUSH.Physics.Collider
 {
     public partial class InputSystem : SystemBase
     {
-        private ColliderObject _colliderObjectInputSystem;
+        private PhysicsObjectInputSystem physicsObjectInputSystem;
 
         protected override void OnCreate()
         {
@@ -15,14 +15,14 @@ namespace Collider
                 EntityManager.CreateEntity(typeof(InputComponent));
             }
 
-            _colliderObjectInputSystem = new ColliderObject();
-            _colliderObjectInputSystem.Enable();
+            physicsObjectInputSystem = new PhysicsObjectInputSystem();
+            physicsObjectInputSystem.Enable();
         }
 
         protected override void OnUpdate()
         {
-            Vector2 player1Input = _colliderObjectInputSystem.Player1.Move.ReadValue<Vector2>();
-            Vector2 player2Input = _colliderObjectInputSystem.Player2.Move.ReadValue<Vector2>();
+            Vector2 player1Input = physicsObjectInputSystem.Player1.Move.ReadValue<Vector2>();
+            Vector2 player2Input = physicsObjectInputSystem.Player2.Move.ReadValue<Vector2>();
             
             SystemAPI.SetSingleton(new InputComponent {player1Input = player1Input, player2Input = player2Input});
         }

@@ -1,12 +1,12 @@
-using Physics_Collider;
 using Unity.Burst;
 using Unity.Entities;
+using Unity.Mathematics;
 using Unity.Physics;
 using Unity.Transforms;
 using Unity.VisualScripting;
 using UnityEngine;
 
-namespace Physics_Collider
+namespace Physics.Raycast
 {
     partial struct RayShooterSystem : ISystem
     {
@@ -23,7 +23,7 @@ namespace Physics_Collider
         {
             if (elapsedTime > 0.5f)
             {
-                // 레이캐스트를 사용하기 위해 PysicsWorldSingleton이 필요하다.
+                // 레이캐스트를 사용하기 위해 PhysicsWorldSingleton이 필요하다.
                 PhysicsWorldSingleton physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
                 EntityManager entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
 
@@ -31,7 +31,7 @@ namespace Physics_Collider
                 {
                     // Debug.Log(tranform.ValueRO.Position);
                     // Debug.Log(tranform.ValueRO.Position + tranform.ValueRO.Forward * 10.0f);
-                    // Debug.DrawLine(tranform.ValueRO.Position, tranform.ValueRO.Position + tranform.ValueRO.Forward * 10.0f, Color.blue, 2.5f);
+                    Debug.DrawLine(tranform.ValueRO.Position, tranform.ValueRO.Position + tranform.ValueRO.Forward * 10.0f, Color.blue, 2.5f);
                     var ray = new RaycastInput()
                     {
                         Start = tranform.ValueRO.Position,

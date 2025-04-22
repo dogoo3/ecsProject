@@ -1,7 +1,7 @@
 using Unity.Entities;
 using UnityEngine;
 
-namespace Physics_Collider
+namespace Physics.Raycast
 {
     public class RayShooterAuthoring : MonoBehaviour
     {
