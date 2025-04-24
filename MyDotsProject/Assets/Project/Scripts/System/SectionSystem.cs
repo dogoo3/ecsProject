@@ -12,16 +12,24 @@ partial struct SectionSystem : ISystem
     public void OnCreate(ref SystemState state)
     {
         state.RequireForUpdate<Circle>();
+        state.RequireForUpdate<StateManager>();
     }
 
     [BurstCompile]
     public void OnUpdate(ref SystemState state)
     {
+        // EntityManager 생성
+        EntityManager entityManager = state.EntityManager;
+
         NativeHashSet<Entity> toLoad = new NativeHashSet<Entity>(1, Allocator.Temp);
 
         var sectionQuery = SystemAPI.QueryBuilder().WithAll<Circle, SceneSectionData>().Build();
         var sectionEntities = sectionQuery.ToEntityArray(Allocator.Temp);
         var circles = sectionQuery.ToComponentDataArray<Circle>(Allocator.Temp);
+
+        // 게임 내에서의 상태들을 관리하고, 상태에 따라 로직을 변경하기 위해서 StateManager를 불러온다.
+        Entity stateManager = SystemAPI.GetSingletonEntity<StateManager>();
+        StateManager manager = entityManager.GetComponentData<StateManager>(stateManager);
 
         // Find all the sections that should be loaded based on the distances to the sphere
         foreach (var transform in
@@ -34,14 +42,25 @@ partial struct SectionSystem : ISystem
                 distance.y = 0;
                 float radiusSq = circles[index].Radius;
                 Color debugColor = new Color(1f, 0f, 0f);
-                if (math.lengthsq(distance) < radiusSq * radiusSq)
+                if(!manager.isEnterBuilding) // 섹션 설정 기능이 OFF일 경우
                 {
-                    toLoad.Add(sectionEntities[index]);
-                    debugColor = new Color(0f, 0.5f, 0f);
-                }
+                    if (math.abs(circles[index].Center.y - transform.ValueRO.Position.y) < 2.0f) // (Section의 중심점의 y좌표 - 캐릭터의 y좌표)가 제한 높이보다 작을 경우에만 section이 활성화되도록 설정
+                    {
+                        if (math.lengthsq(distance) < radiusSq * radiusSq) // 일정 거리만큼 떨어져 있을 경우
+                        {
+                            toLoad.Add(sectionEntities[index]); // 섹션 활성화
+                            debugColor = new Color(0f, 0.5f, 0f);
+                        }
+                    }
 
-                DrawCircleXZ(circles[index].Center + new float3(0f, 0.2f, 0f),
-                    circles[index].Radius, debugColor);
+                    DrawCircleXZ(circles[index].Center + new float3(0f, 0.2f, 0f),
+                        circles[index].Radius, debugColor);
+                }
+                else // 섹션 설정 기능이 OFF일 경우
+                {
+                    // 모든 섹션 활성화
+                    toLoad.Add(sectionEntities[index]); // 섹션 활성화
+                }
             }
         }
 
