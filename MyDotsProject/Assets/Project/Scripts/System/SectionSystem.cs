@@ -42,7 +42,7 @@ partial struct SectionSystem : ISystem
                 distance.y = 0;
                 float radiusSq = circles[index].Radius;
                 Color debugColor = new Color(1f, 0f, 0f);
-                if(!manager.isEnterBuilding) // 섹션 설정 기능이 OFF일 경우
+                if(manager.isEnterBuilding) // 섹션 설정 기능이 OFF일 경우
                 {
                     if (math.abs(circles[index].Center.y - transform.ValueRO.Position.y) < 2.0f) // (Section의 중심점의 y좌표 - 캐릭터의 y좌표)가 제한 높이보다 작을 경우에만 section이 활성화되도록 설정
                     {
