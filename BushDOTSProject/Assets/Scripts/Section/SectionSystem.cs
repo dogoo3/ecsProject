@@ -6,12 +6,13 @@ using Unity.Scenes;
 using Unity.Transforms;
 using UnityEngine;
 
+[UpdateAfter(typeof(SceneSystem))]
 partial struct SectionSystem : ISystem
 {
     [BurstCompile]
     public void OnCreate(ref SystemState state)
     {
-        state.RequireForUpdate<Circle>();
+        state.RequireForUpdate<Section>();
         state.RequireForUpdate<StateManager>();
     }
 
@@ -23,9 +24,9 @@ partial struct SectionSystem : ISystem
 
         NativeHashSet<Entity> toLoad = new NativeHashSet<Entity>(1, Allocator.Temp);
 
-        var sectionQuery = SystemAPI.QueryBuilder().WithAll<Circle, SceneSectionData>().Build();
+        var sectionQuery = SystemAPI.QueryBuilder().WithAll<Section, SceneSectionData>().Build();
         var sectionEntities = sectionQuery.ToEntityArray(Allocator.Temp);
-        var circles = sectionQuery.ToComponentDataArray<Circle>(Allocator.Temp);
+        var circles = sectionQuery.ToComponentDataArray<Section>(Allocator.Temp);
 
         // 게임 내에서의 상태들을 관리하고, 상태에 따라 로직을 변경하기 위해서 StateManager를 불러온다.
         Entity stateManager = SystemAPI.GetSingletonEntity<StateManager>();
@@ -35,7 +36,7 @@ partial struct SectionSystem : ISystem
         // Find all the sections that should be loaded based on the distances to the sphere
         foreach (var transform in
                  SystemAPI.Query<RefRO<LocalTransform>>()
-                     .WithAll<SphereComponent>())
+                     .WithAll<CharacterComponent>())
         {
             for (int index = 0; index < circles.Length; ++index)
             {
