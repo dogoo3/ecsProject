@@ -32,7 +32,6 @@ partial struct SectionSystem : ISystem
         Entity stateManager = SystemAPI.GetSingletonEntity<StateManager>();
         StateManager manager = entityManager.GetComponentData<StateManager>(stateManager);
 
-        Debug.Log(sectionQuery.CalculateEntityCount());
         // Find all the sections that should be loaded based on the distances to the sphere
         foreach (var transform in
                  SystemAPI.Query<RefRO<LocalTransform>>()
