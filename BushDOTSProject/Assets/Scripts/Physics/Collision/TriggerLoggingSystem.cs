@@ -1,4 +1,5 @@
 using Unity.Burst;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Physics;
 using Unity.Physics.Systems;
@@ -22,9 +23,9 @@ public partial struct TriggerLoggingSystem : ISystem
         // 이 시스템이 실행되려면 StatefulTriggerEvent 버퍼가 있는 엔티티가 최소 하나 이상 있어야 합니다.
         // state.RequireForUpdate<StatefulTriggerEvent>(); // IBufferElementData 자체로는 RequireForUpdate를 사용할 수 없습니다.
         // 대신 OnUpdate에서 필터링하거나 Job에서 사용합니다.
-
-
         state.RequireForUpdate<StateManager>();
+
+        state.EntityManager.AddBuffer<TriggerBufferElement>(state.EntityManager.CreateEntity());
     }
     // [BurstCompile] // ISystem.OnUpdate는 BurstCompile을 직접 적용할 수 없습니다. Job을 사용하여 Burst를 활용합니다.
     public void OnUpdate(ref SystemState state)
@@ -35,8 +36,11 @@ public partial struct TriggerLoggingSystem : ISystem
         // 게임 내에서의 상태들을 관리하고, 상태에 따라 로직을 변경하기 위해서 StateManager를 불러온다.
         Entity stateManager = SystemAPI.GetSingletonEntity<StateManager>();
 
-        // ISystem에서는 직접적으로 foreach를 사용하기보다 Job을 스케줄링하는 것이 일반적입니다.
-        // 하지만 간단한 로깅의 경우, Main Thread에서 실행해도 큰 부담이 없다면 SystemAPI를 사용할 수 있습니다.
+        // 트리거 충돌 상태를 관리합니다(엔티티에서 DynamicBuffer 가져오기)
+        Entity triggerEntity = SystemAPI.GetSingletonEntity<TriggerBufferElement>();
+        DynamicBuffer<TriggerBufferElement> entityArray = SystemAPI.GetBuffer<TriggerBufferElement>(triggerEntity);
+
+        Debug.Log(entityArray.Length);
 
         // StatefulTriggerEvent 버퍼를 가진 모든 엔티티를 순회합니다.
         foreach (var (triggerBuffer, entity) in SystemAPI.Query<DynamicBuffer<StatefulTriggerEvent>>().WithEntityAccess())
@@ -48,14 +52,20 @@ public partial struct TriggerLoggingSystem : ISystem
                 switch (triggerEvent.State)
                 {
                     case StatefulEventState.Enter:
-                        Debug.Log($"Trigger Enter - Entity: {entity.Index}:{entity.Version}, Other Entity: {otherEntity.Index}:{otherEntity.Version}");
-                        // EnterBuilding tag가 붙은 컴포넌트의 경우에만 호출
-                        bool isEnterBuilding = entityManager.HasComponent<EnterBuildingTag>(entity);
-                        if (isEnterBuilding)
+                        if(!ContainsEntity(in entityArray, entity))
                         {
-                            StateManager manager = entityManager.GetComponentData<StateManager>(stateManager);
-                            manager.isEnterBuilding = !manager.isEnterBuilding;
-                            entityManager.SetComponentData(stateManager, manager);
+                            entityArray.Add(entity); // 암시적 변환 사용
+                            Debug.Log($"Trigger Enter - Entity: {entity.Index}:{entity.Version}, Other Entity: {otherEntity.Index}:{otherEntity.Version}");
+                            // 하기에 작업항목 구현
+                            Debug.Log($"Trigger Enter - Entity: {entity.Index}:{entity.Version}, Other Entity: {otherEntity.Index}:{otherEntity.Version}");
+                            // EnterBuilding tag가 붙은 컴포넌트의 경우에만 호출
+                            bool isEnterBuilding = entityManager.HasComponent<EnterBuildingTag>(entity);
+                            if (isEnterBuilding)
+                            {
+                                StateManager manager = entityManager.GetComponentData<StateManager>(stateManager);
+                                manager.isEnterBuilding = !manager.isEnterBuilding;
+                                entityManager.SetComponentData(stateManager, manager);
+                            }
                         }
                         break;
                     case StatefulEventState.Stay:
@@ -63,7 +73,13 @@ public partial struct TriggerLoggingSystem : ISystem
                         //Debug.Log($"Trigger Stay - Entity: {entity.Index}:{entity.Version}, Other Entity: {otherEntity.Index}:{otherEntity.Version}");
                         break;
                     case StatefulEventState.Exit:
-                        //Debug.Log($"Trigger Exit - Entity: {entity.Index}:{entity.Version}, Other Entity: {otherEntity.Index}:{otherEntity.Version}");
+                        // 하기에 작업항목 구현
+                        if (ContainsEntity(in entityArray, entity))
+                        {
+                            RemoveEntityFromArray(ref entityArray, entity);
+                            Debug.Log($"Trigger Exit - Entity: {entity.Index}:{entity.Version}, Other Entity: {otherEntity.Index}:{otherEntity.Version}");
+                            Debug.Log("아웃풋");
+                        }
                         break;
                     case StatefulEventState.Undefined:
                         Debug.LogWarning($"Trigger Event in Undefined state - Entity: {entity.Index}:{entity.Version}, Other Entity: {otherEntity.Index}:{otherEntity.Version}");
@@ -77,6 +93,47 @@ public partial struct TriggerLoggingSystem : ISystem
                     Debug.Log($"  - Estimated Impulse: {details.EstimatedImpulse}");
                     Debug.Log($"  - Average Contact Point Position: {details.AverageContactPointPosition}");
                 }
+            }
+        }
+    }
+    
+    [BurstCompile]
+    public void OnDestroy(ref SystemState state)
+    {
+        // var query = state.EntityManager.CreateEntityQuery(ComponentType.ReadOnly<CollisionManager>());
+        // foreach (var entity in query.ToEntityArray(Allocator.Temp))
+        // {
+        //     state.EntityManager.GetComponentData<CollisionManager>(entity).Dispose();
+        // }
+        Entity trigger = SystemAPI.GetSingletonEntity<TriggerBufferElement>();
+        if(state.EntityManager.Exists(trigger))
+        {
+            state.EntityManager.DestroyEntity(trigger);
+            Debug.Log("잘 파괴됨");
+        }
+    }
+
+    private bool ContainsEntity(in DynamicBuffer<TriggerBufferElement> buffer, Entity entityToFind)
+    {
+        foreach (TriggerBufferElement element in buffer)
+        {
+            if (element.Value == entityToFind)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+        // DynamicBuffer는 값 타입이므로, ref로 전달하여 직접 수정합니다.
+    private void RemoveEntityFromArray(ref DynamicBuffer<TriggerBufferElement> buffer, Entity entityToRemove)
+    {
+        for (int i = buffer.Length - 1; i >= 0; i--)
+        {
+            if (buffer[i].Value == entityToRemove)
+            {
+                buffer.RemoveAt(i);
+                return; // 하나만 삭제한다고 가정
             }
         }
     }

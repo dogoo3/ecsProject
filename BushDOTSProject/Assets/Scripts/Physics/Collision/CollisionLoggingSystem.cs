@@ -1,4 +1,5 @@
 using Unity.Burst;
+using Unity.Collections;
 using Unity.Entities;
 using Unity.Physics;
 using Unity.Physics.Systems;
@@ -22,6 +23,24 @@ public partial struct CollisionLoggingSystem : ISystem
         // 이 시스템이 실행되려면 StatefulCollisionEvent 버퍼가 있는 엔티티가 최소 하나 이상 있어야 합니다.
         // state.RequireForUpdate<StatefulCollisionEvent>(); // IBufferElementData 자체로는 RequireForUpdate를 사용할 수 없습니다.
         // 대신 OnUpdate에서 필터링하거나 Job에서 사용합니다.
+
+        // StatefulCollisionEvent 버퍼를 가진 entity 중 CollisionManager 컴포넌트가 없는 엔티티를 찾아 초기화함
+        // var query = state.EntityManager.CreateEntityQuery(ComponentType.ReadOnly<StatefulCollisionEvent>(), ComponentType.Exclude<CollisionManager>());
+        
+        // NativeHashSet : https://docs.unity3d.com/Packages/com.unity.collections@0.11/api/Unity.Collections.NativeHashSet-1.html
+        
+        // 충돌된 entity를 저장할 수 있는 NativeHashSet 선언/정의
+        // Allocator : Native Container(Set, Array 등)를 new로 할당할 때, 할당된 container가 메모리에 유지되는 시간을 설정 가능
+        // Allocator.Temp : 가장 빠르게 할당되나, 1프레임을 초과하면 자동 할당 해제.
+        // Allocator.TempJob : Temp보다는 할당이 느리나, Persistent보다 빠름(중간). 
+        // Allocator.Persistent : 할당은 제일 느리지만 지속 유지됨. 그래서 Dispose()를 반드시 OnDestroy()에서 호출해 주어야 memory leak가 일어나지 않음.
+        // https://everyday-devup.tistory.com/98
+        // foreach (var entity in query.ToEntityArray(Allocator.Temp))
+        // {
+        //     state.EntityManager.AddComponent<CollisionManager>(entity);
+        //     state.EntityManager.SetComponentEnabled<CollisionManager>(entity, true);
+        //     state.EntityManager.SetComponentData(entity, new CollisionManager { collisionEntities = new NativeHashSet<Entity>(16, Allocator.Persistent) });
+        // }
     }
 
     [BurstCompile]
@@ -29,6 +48,13 @@ public partial struct CollisionLoggingSystem : ISystem
     {
         // ISystem에서는 직접적으로 foreach를 사용하기보다 Job을 스케줄링하는 것이 일반적입니다.
         // 하지만 간단한 로깅의 경우, Main Thread에서 실행해도 큰 부담이 없다면 SystemAPI를 사용할 수 있습니다.
+
+        EntityManager entityManager = state.EntityManager;
+
+        // Collision과 관련된 Singleton을 생성합니다.
+        // Entity collisionManager = SystemAPI.GetSingletonEntity<CollisionManagerComponent>();
+        // CollisionManagerComponent cmc = entityManager.GetComponentData<CollisionManagerComponent>(collisionManager);
+        // cmc.collisionEntities = new NativeHashSet<Entity>(16, Allocator.Persistent);
 
         // StatefulCollisionEvent 버퍼를 가진 모든 엔티티를 순회합니다.
         foreach (var (collisionBuffer, entity) in SystemAPI.Query<DynamicBuffer<StatefulCollisionEvent>>().WithEntityAccess())
@@ -40,6 +66,7 @@ public partial struct CollisionLoggingSystem : ISystem
                 switch (collisionEvent.State)
                 {
                     case StatefulEventState.Enter:
+                        // 하기에 작업항목 구현
                         Debug.Log($"Collision Enter - Entity: {entity.Index}:{entity.Version}, Other Entity: {otherEntity.Index}:{otherEntity.Version}");
                         break;
                     case StatefulEventState.Stay:
@@ -47,6 +74,7 @@ public partial struct CollisionLoggingSystem : ISystem
                         // Debug.Log($"Collision Stay - Entity: {entity.Index}:{entity.Version}, Other Entity: {otherEntity.Index}:{otherEntity.Version}");
                         break;
                     case StatefulEventState.Exit:
+                        // 하기에 작업항목 구현
                         Debug.Log($"Collision Exit - Entity: {entity.Index}:{entity.Version}, Other Entity: {otherEntity.Index}:{otherEntity.Version}");
                         break;
                     case StatefulEventState.Undefined:
@@ -63,6 +91,16 @@ public partial struct CollisionLoggingSystem : ISystem
                 // }
             }
         }
+    }
+
+    [BurstCompile]
+    public void OnDestroy(ref SystemState state)
+    {
+        // var query = state.EntityManager.CreateEntityQuery(ComponentType.ReadOnly<CollisionManager>());
+        // foreach (var entity in query.ToEntityArray(Allocator.Temp))
+        // {
+        //     state.EntityManager.GetComponentData<CollisionManager>(entity).Dispose();
+        // }
     }
 }
 
