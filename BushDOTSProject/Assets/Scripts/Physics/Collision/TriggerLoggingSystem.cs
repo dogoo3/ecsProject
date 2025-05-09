@@ -55,10 +55,8 @@ public partial struct TriggerLoggingSystem : ISystem
                         if(!ContainsEntity(in entityArray, entity))
                         {
                             entityArray.Add(entity); // 암시적 변환 사용
-                            Debug.Log($"Trigger Enter - Entity: {entity.Index}:{entity.Version}, Other Entity: {otherEntity.Index}:{otherEntity.Version}");
-                            // 하기에 작업항목 구현
-                            Debug.Log($"Trigger Enter - Entity: {entity.Index}:{entity.Version}, Other Entity: {otherEntity.Index}:{otherEntity.Version}");
-                            // EnterBuilding tag가 붙은 컴포넌트의 경우에만 호출
+                            Debug.Log("Trigger Enter");
+                            // 하기에 작업항목 구현// EnterBuilding tag가 붙은 컴포넌트의 경우에만 호출
                             bool isEnterBuilding = entityManager.HasComponent<EnterBuildingTag>(entity);
                             if (isEnterBuilding)
                             {
@@ -67,6 +65,7 @@ public partial struct TriggerLoggingSystem : ISystem
                                 entityManager.SetComponentData(stateManager, manager);
                             }
                         }
+                        Debug.Log($"Trigger Enter - Entity: {entity.Index}:{entity.Version}, Other Entity: {otherEntity.Index}:{otherEntity.Version}");
                         break;
                     case StatefulEventState.Stay:
                         // 충돌 중일 때 매 프레임 호출됩니다. 필요하다면 로그를 남기세요.
@@ -77,9 +76,9 @@ public partial struct TriggerLoggingSystem : ISystem
                         if (ContainsEntity(in entityArray, entity))
                         {
                             RemoveEntityFromArray(ref entityArray, entity);
-                            Debug.Log($"Trigger Exit - Entity: {entity.Index}:{entity.Version}, Other Entity: {otherEntity.Index}:{otherEntity.Version}");
                             Debug.Log("아웃풋");
                         }
+                        Debug.Log($"Trigger Exit - Entity: {entity.Index}:{entity.Version}, Other Entity: {otherEntity.Index}:{otherEntity.Version}");
                         break;
                     case StatefulEventState.Undefined:
                         Debug.LogWarning($"Trigger Event in Undefined state - Entity: {entity.Index}:{entity.Version}, Other Entity: {otherEntity.Index}:{otherEntity.Version}");
@@ -125,7 +124,7 @@ public partial struct TriggerLoggingSystem : ISystem
         return false;
     }
 
-        // DynamicBuffer는 값 타입이므로, ref로 전달하여 직접 수정합니다.
+    // DynamicBuffer는 값 타입이므로, ref로 전달하여 직접 수정합니다.
     private void RemoveEntityFromArray(ref DynamicBuffer<TriggerBufferElement> buffer, Entity entityToRemove)
     {
         for (int i = buffer.Length - 1; i >= 0; i--)
